@@ -2,6 +2,8 @@ package de.checker00007.bedrockbridge
 
 import org.junit.Assert.*
 import org.junit.Test
+import okhttp3.mockwebserver.MockResponse
+import okhttp3.mockwebserver.MockWebServer
 import java.net.DatagramSocket
 import java.net.InetAddress
 import java.net.InetSocketAddress
@@ -46,18 +48,9 @@ class TransportTest {
     fun netherDiscoveryAndHttpAnswerRoundTrip() {
         val offer = "v=0\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\na=candidate:1 1 udp 1 192.0.2.1 4567 typ host\r\n"
         val answer = offer.replace("192.0.2.1", "198.51.100.3")
-        val http = com.sun.net.httpserver.HttpServer.create(InetSocketAddress(loopback, 0), 0)
-        http.createContext("/v1/join/42") { exchange ->
-            exchange.use {
-                val valid = it.requestMethod == "POST" &&
-                    it.requestHeaders.getFirst("Content-Type") == "application/sdp" &&
-                    it.requestBody.bufferedReader().use { input -> input.readText() } == offer
-                val body = answer.encodeToByteArray()
-                it.sendResponseHeaders(if (valid) 200 else 400, body.size.toLong())
-                it.responseBody.use { output -> output.write(body) }
-            }
-        }
-        http.start()
+        val http = MockWebServer()
+        http.enqueue(MockResponse().setBody(answer))
+        http.start(loopback, 0)
         val worker = Executors.newSingleThreadExecutor()
         try {
             DatagramSocket(0, loopback).use { lan ->
@@ -66,7 +59,7 @@ class TransportTest {
                 val server = thread(isDaemon = true) {
                     try {
                         NetherBridge(
-                            lan, Profile(host = "127.0.0.1", port = http.address.port, signaling = "HTTP"),
+                            lan, Profile(host = "127.0.0.1", port = http.port, signaling = "HTTP"),
                             worker, { true }, { if (it.contains("aktiv auf UDP")) ready.countDown() }
                         ).run()
                     } catch (_: java.net.SocketException) {
@@ -83,6 +76,11 @@ class TransportTest {
                         client.sendBytes(NetherWire.signal(42, advertised.sender, "CONNECTREQUEST 7 $offer"), target)
                         val reply = requireNotNull(NetherWire.decode(client.receiveBytes(ByteArray(4096)).first))
                         assertEquals("CONNECTRESPONSE 7 $answer", reply.signalFor(42))
+                        val request = requireNotNull(http.takeRequest(1, TimeUnit.SECONDS))
+                        assertEquals("/v1/join/42", request.path)
+                        assertEquals("POST", request.method)
+                        assertEquals("application/sdp", request.getHeader("Content-Type"))
+                        assertEquals(offer, request.body.readUtf8())
                     }
                 } finally {
                     lan.close()
@@ -91,7 +89,7 @@ class TransportTest {
             }
         } finally {
             worker.shutdownNow()
-            http.stop(0)
+            http.close()
         }
     }
 
