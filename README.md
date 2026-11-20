@@ -44,3 +44,7 @@ Der Workflow prüft die APK-Signatur vor dem Upload. Der Build liegt lokal unter
 ## Hinweis zu HTTP 401 auf Xbox (v0.2.1)
 
 Die LAN-Erkennung kann funktionieren, obwohl der HTTP-Signaling-Server `POST /v1/join/{id}` mit 401 ablehnt. Dies ist nicht automatisch ein falsches Passwort: Der Xbox-LAN-Pfad kann eine andere Identitätsbindung benötigen als der direkte HTTP-Beitritt. v0.2.1 meldet diesen Unterschied deutlicher, statt eine Xbox-Verbindung zu behaupten. Die Standardeinstellung neuer Profile ist HTTP für Geysers eingebautes Signaling (ohne bereits eingerichteten HTTPS-Reverse-Proxy). Bestehende Profile bleiben unverändert. Keine Authentifizierung umgehen oder Geysers Xbox-Loginprüfung deaktivieren. Bei erneutem 401 Geyser-Logs und Upstream-NetherNet-LAN-Unterstützung prüfen. 
+
+## Ausserhalb des Heimnetzes (v0.2.2)
+
+Die Android-Bridge und die Xbox muessen im **selben lokalen WLAN** sein. Der Minecraft-Server darf an einem anderen Standort stehen, jedoch reicht die Weiterleitung von UDP/TCP 19132 allein nicht zwingend: NetherNet verwendet WebRTC mit ICE und benoetigt einen tatsaechlich erreichbaren Medienpfad (ggf. TURN/Relay oder korrekt erreichbare ICE-Kandidaten). Der HTTP-Endpunkt `/v1/join` ist nur Signaling, kein Medienrelay. HTTP 401 muss unabhaengig davon untersucht werden; der LAN-Fix aus GeyserMC PR #6896 ist kein belegter Fix fuer diesen HTTP-Proxy-Weg. v0.2.2 verbessert die Diagnose, bietet aber **noch keine funktionsfaehige Remote-Relay-Integration**. Der Live-Server wird nicht veraendert.
