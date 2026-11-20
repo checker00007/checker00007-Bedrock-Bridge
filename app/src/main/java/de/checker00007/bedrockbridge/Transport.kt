@@ -131,6 +131,11 @@ internal class JoinEndpoint(private val profile: Profile) {
                 connection.outputStream.use { it.write(bytes) }
             }
             val code = connection.responseCode
+            if (code == 401) throw IOException(
+                "NetherNet-Signaling HTTP 401: Geyser lehnt das Xbox-Angebot ab. " +
+                    "Der HTTP-Signaling-Pfad kann die Xbox-LAN-Identitaet nicht automatisch nachweisen. " +
+                    "Keine Microsoft-Zugangsdaten in der App eingeben; Geyser-Logs und LAN-Identitaetsbindung pruefen."
+            )
             if (code !in 200..299) throw IOException("NetherNet-Signaling meldet HTTP $code.")
             val result = ByteArrayOutputStream()
             connection.inputStream.use { input ->
