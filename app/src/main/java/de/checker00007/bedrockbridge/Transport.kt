@@ -133,8 +133,8 @@ internal class JoinEndpoint(private val profile: Profile) {
             val code = connection.responseCode
             if (code == 401) throw IOException(
                 "NetherNet-Signaling HTTP 401: Geyser lehnt das Xbox-Angebot ab. " +
-                    "Der HTTP-Signaling-Pfad kann die Xbox-LAN-Identitaet nicht automatisch nachweisen. " +
-                    "Keine Microsoft-Zugangsdaten in der App eingeben; Geyser-Logs und LAN-Identitaetsbindung pruefen."
+                    "Der HTTP-Beitritt wurde abgewiesen; die genaue Ursache muss auf dem Server geprueft werden. " +
+                    "In fremden Netzwerken ist ausserdem eine erreichbare WebRTC-ICE-Route oder ein Relay noetig."
             )
             if (code !in 200..299) throw IOException("NetherNet-Signaling meldet HTTP $code.")
             val result = ByteArrayOutputStream()
@@ -182,6 +182,7 @@ internal class NetherBridge(
         val buffer = ByteArray(NetherWire.MAX_SIGNAL + 128)
         var lastDiscovery = 0L
         log("NetherNet-LAN aktiv auf UDP ${socket.localPort}.")
+        log("Bei einem Server ausserhalb dieses WLANs braucht WebRTC eine erreichbare ICE-Route oder einen Relay. HTTP-Signaling allein uebertraegt keine Spieldaten.")
         while (!socket.isClosed) {
             try {
                 val (bytes, from) = socket.receiveBytes(buffer)
