@@ -2,11 +2,11 @@
 
 Werbefreie Android-App für den Beitritt zu Minecraft Java über Geyser und Floodgate auf der Xbox Series. Serverprofile bleiben lokal auf dem Smartphone. Es gibt keine Konten, Werbung, Tracker oder Abos.
 
-**v0.2.0 ist eine Testversion.** Die automatisierten Tests simulieren LAN-Discovery, den NetherNet-Signaling-Austausch und die RakNet-UDP-Weiterleitung. Ein Beitritt mit einer echten Xbox steht aus.
+**v0.2.1 ist eine Diagnose-Testversion, kein bestätigter Xbox-Fix.** Die automatisierten Tests simulieren LAN-Discovery, den NetherNet-Signaling-Austausch und die RakNet-UDP-Weiterleitung. Ein Beitritt mit einer echten Xbox steht aus.
 
 ## APK installieren und auf der Xbox testen
 
-1. Lade die [Android-APK v0.2.0](https://github.com/checker00007/checker00007-Bedrock-Bridge/releases/download/v0.2.0/checker00007-Bedrock-Bridge-v0.2.0-debug.apk) direkt herunter und öffne sie auf Android 8 oder neuer. Der Download erfordert kein GitHub-Konto. Weitere Versionen findest du unter [GitHub Releases](https://github.com/checker00007/checker00007-Bedrock-Bridge/releases). Falls Android die Installation wegen einer anders signierten älteren Debug-APK ablehnt, geht beim Deinstallieren der alten App auch deren lokales Profil verloren.
+1. Lade die [Android-APK v0.2.1](https://github.com/checker00007/checker00007-Bedrock-Bridge/releases/download/v0.2.1/checker00007-Bedrock-Bridge-v0.2.1-debug.apk) direkt herunter und öffne sie auf Android 8 oder neuer. Der Download erfordert kein GitHub-Konto. Weitere Versionen findest du unter [GitHub Releases](https://github.com/checker00007/checker00007-Bedrock-Bridge/releases). Falls Android die Installation wegen einer anders signierten älteren Debug-APK ablehnt, geht beim Deinstallieren der alten App auch deren lokales Profil verloren.
 2. Verbinde Smartphone und Xbox mit demselben IPv4-LAN. Die Xbox kann per Ethernet am selben Router hängen. Ein Gastnetz mit Client-Isolation kann die LAN-Erkennung blockieren.
 3. Wähle **Server hinzufügen** und speichere den Geyser-Host und Bedrock-Port, meistens 19132. Wähle für Bedrock 26.60 oder neuer **NetherNet**. Die LAN-Vorgabe ist 26.60 / Protokoll 2225. Die Anzeigeparameter lassen sich im Profil ändern.
 4. Tippe **Diagnose**. **HTTPS** nutzt den angegebenen Port. **HTTPS 443** nutzt Port 443. Wähle **HTTP** nur, wenn dein Endpunkt bereits für unverschlüsseltes Signaling vorgesehen ist. Das Prüfziel ist `GET /v1/join`. Ein erfolgreicher Abruf prüft die HTTP-Strecke vom Smartphone. Der eigentliche Medienpfad und der Login werden erst beim Beitritt geprüft.
@@ -40,3 +40,7 @@ gradle :app:testDebugUnitTest :app:assembleDebug
 ```
 
 Der Workflow prüft die APK-Signatur vor dem Upload. Der Build liegt lokal unter `app/build/outputs/apk/debug/app-debug.apk`.
+
+## Hinweis zu HTTP 401 auf Xbox (v0.2.1)
+
+Die LAN-Erkennung kann funktionieren, obwohl der HTTP-Signaling-Server `POST /v1/join/{id}` mit 401 ablehnt. Dies ist nicht automatisch ein falsches Passwort: Der Xbox-LAN-Pfad kann eine andere Identitätsbindung benötigen als der direkte HTTP-Beitritt. v0.2.1 meldet diesen Unterschied deutlicher, statt eine Xbox-Verbindung zu behaupten. Die Standardeinstellung neuer Profile ist HTTP für Geysers eingebautes Signaling (ohne bereits eingerichteten HTTPS-Reverse-Proxy). Bestehende Profile bleiben unverändert. Keine Authentifizierung umgehen oder Geysers Xbox-Loginprüfung deaktivieren. Bei erneutem 401 Geyser-Logs und Upstream-NetherNet-LAN-Unterstützung prüfen. 
