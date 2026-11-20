@@ -26,12 +26,25 @@ internal fun DatagramSocket.receiveBytes(buffer: ByteArray): Pair<ByteArray, Ine
 internal fun rakProbe(target: InetSocketAddress): Pair<String, Long> =
     DatagramSocket().use { socket ->
         socket.connect(target)
-        socket.soTimeout = 2500
-        val ping = RakWire.ping()
-        socket.sendBytes(ping, target)
-        val reply = socket.receiveBytes(ByteArray(4096)).first
-        val motd = RakWire.readPong(ping, reply) ?: throw IOException("Ungültige RakNet-Antwort.")
-        motd to ByteBuffer.wrap(reply, 9, 8).long
+        socket.soTimeout = 1200
+        var invalidResponses = 0
+        repeat(3) {
+            val ping = RakWire.ping()
+            socket.sendBytes(ping, target)
+            try {
+                val reply = socket.receiveBytes(ByteArray(4096)).first
+                val motd = RakWire.readPong(ping, reply)
+                if (motd != null) return@use motd to ByteBuffer.wrap(reply, 9, 8).long
+                invalidResponses++
+            } catch (_: SocketTimeoutException) {
+                // A lost UDP response must not end the entire probe immediately.
+            }
+        }
+        throw IOException(
+            if (invalidResponses > 0) "RakNet: $invalidResponses ungueltige Pong-Antwort(en) von $target."
+            else "RakNet: Keine Pong-Antwort von $target nach 3 Versuchen. " +
+                "Der Server kann erreichbar sein, ohne klassisches RakNet zu unterstuetzen."
+        )
     }
 
 internal class LegacyBridge(
