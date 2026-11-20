@@ -94,6 +94,23 @@ class TransportTest {
     }
 
     @Test(timeout = 8_000)
+    fun rakProbeRetriesAfterLostFirstPing() {
+        val motd = "MCPE;Upstream;2193;26.52;0;20;17;world;Survival;1;19132;19133"
+        DatagramSocket(0, loopback).use { upstream ->
+            upstream.soTimeout = 5000
+            val server = thread(isDaemon = true) {
+                upstream.receiveBytes(ByteArray(4096)) // Drop the first UDP ping.
+                val (secondPing, client) = upstream.receiveBytes(ByteArray(4096))
+                upstream.sendBytes(RakWire.pong(secondPing, 17, motd), client)
+            }
+            val (result, serverId) = rakProbe(InetSocketAddress(loopback, upstream.localPort))
+            assertEquals(motd, result)
+            assertEquals(17L, serverId)
+            server.join(1000)
+        }
+    }
+
+    @Test(timeout = 8_000)
     fun legacyDiscoversAndRelaysInBothDirections() {
         val motd = "MCPE;Upstream;2193;26.52;0;20;17;world;Survival;1;19132;19133"
         DatagramSocket(0, loopback).use { upstream ->
