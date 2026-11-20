@@ -18,7 +18,7 @@ internal data class Profile(
     val mode: Mode = Mode.NETHER,
     val version: String = "26.60",
     val protocol: Int = 2225,
-    val signaling: String = "HTTPS",
+    val signaling: String = "HTTP",
     val nonce: String = ""
 ) {
     fun json() = JSONObject().put("id", id).put("name", name).put("host", host)
