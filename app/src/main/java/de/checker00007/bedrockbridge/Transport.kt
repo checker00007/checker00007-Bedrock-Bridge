@@ -131,12 +131,28 @@ internal class JoinEndpoint(private val profile: Profile) {
                 connection.outputStream.use { it.write(bytes) }
             }
             val code = connection.responseCode
-            if (code == 401) throw IOException(
-                "NetherNet-Signaling HTTP 401: Geyser lehnt das Xbox-Angebot ab. " +
-                    "Der HTTP-Beitritt wurde abgewiesen; die genaue Ursache muss auf dem Server geprueft werden. " +
-                    "In fremden Netzwerken ist ausserdem eine erreichbare WebRTC-ICE-Route oder ein Relay noetig."
-            )
-            if (code !in 200..299) throw IOException("NetherNet-Signaling meldet HTTP $code.")
+            if (code !in 200..299) {
+                // Geyser's response body often contains the actionable reason for
+                // signaling rejection. Keep it bounded and never log the SDP offer.
+                val detail = runCatching {
+                    connection.errorStream?.use { stream ->
+                        val bytes = ByteArrayOutputStream()
+                        val buffer = ByteArray(256)
+                        while (bytes.size() < 1024) {
+                            val n = stream.read(buffer, 0, minOf(buffer.size, 1024 - bytes.size()))
+                            if (n <= 0) break
+                            bytes.write(buffer, 0, n)
+                        }
+                        bytes.toByteArray().decodeToString()
+                            .replace(Regex("[\\r\\n\\t]+"), " ")
+                            .take(160)
+                    }
+                }.getOrNull().orEmpty()
+                val message = if (code == 401)
+                    "NetherNet HTTP 401: Geyser hat das Angebot abgewiesen."
+                else "NetherNet-Signaling meldet HTTP $code."
+                throw IOException(message + if (detail.isBlank()) " Serverlog pruefen." else " Serverantwort: $detail")
+            }
             val result = ByteArrayOutputStream()
             connection.inputStream.use { input ->
                 val buffer = ByteArray(1024)
